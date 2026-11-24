@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Misja Renifer – dziesiątki i jedności</title>
+<style>
+  :root{
+    --red:#e53935; --red-soft:#ffebee;
+    --green:#2e9e44; --green-soft:#e6f6e9;
+    --ink:#23304d; --muted:#5d6b8a;
+    --card:#ffffff; --bg1:#d7ecff; --bg2:#f4fbff;
+    --accent:#ff8f00; --blue:#2f6fed;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:"Trebuchet MS","Segoe UI","Comic Sans MS",system-ui,sans-serif;
+    color:var(--ink);
+    background:linear-gradient(180deg,var(--bg1),var(--bg2) 60%);
+    min-height:100vh;
+    -webkit-tap-highlight-color:transparent;
+  }
+  button{font:inherit;cursor:pointer}
+  .app{max-width:1100px;margin:0 auto;padding:12px 16px 40px}
+
+  /* ---------- nagłówek ---------- */
+  header.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+  header.top h1{font-size:clamp(1.1rem,3.5vw,1.6rem);margin:0;flex:1 1 200px}
+  .pill{background:#fff;border-radius:999px;padding:6px 14px;font-weight:700;box-shadow:0 2px 6px rgba(35,48,77,.12);white-space:nowrap}
+  .icon-btn{background:#fff;border:0;border-radius:999px;width:42px;height:42px;font-size:1.2rem;box-shadow:0 2px 6px rgba(35,48,77,.12)}
+  .progress{display:flex;gap:4px;margin:0 0 14px;flex-wrap:wrap}
+  .progress i{flex:1 1 14px;min-width:10px;height:12px;border-radius:6px;background:#c9d8ee;transition:.3s}
+  .progress i.done{background:var(--green)}
+  .progress i.cur{background:var(--accent);animation:pulse 1s infinite}
+  @keyframes pulse{50%{transform:scaleY(1.5)}}
+
+  /* ---------- układ ---------- */
+  .layout{display:grid;gap:16px;grid-template-columns:1fr}
+  @media(min-width:900px){.layout{grid-template-columns:1fr 340px;align-items:start}.puzzle-card{position:sticky;top:12px}}
+  .card{background:var(--card);border-radius:24px;box-shadow:0 6px 20px rgba(35,48,77,.12);padding:16px}
+
+  /* ---------- zadanie ---------- */
+  .coach{display:flex;gap:10px;align-items:flex-start;background:#fff8e1;border:3px solid #ffd54f;border-radius:18px;padding:10px 14px;font-size:clamp(1rem,2.6vw,1.2rem);line-height:1.35;min-height:70px}
+  .coach .face{font-size:2rem;line-height:1}
+  .coach b.r{color:var(--red)} .coach b.g{color:var(--green)}
+  .stage{position:relative;padding:18px 40px 8px}
+  @media(max-width:520px){.stage{padding:14px 18px 6px}}
+  .example{display:flex;justify-content:center;align-items:center;gap:clamp(6px,2vw,18px);font-size:clamp(2.6rem,9vw,4.4rem);font-weight:800;margin:6px 0 22px;user-select:none}
+  .example .num{display:inline-flex;background:#eef4ff;border-radius:18px;padding:2px 8px}
+  .example .op,.example .eq,.example .q{color:var(--muted)}
+  .dig{display:inline-block;min-width:1.05em;text-align:center;border-radius:12px;border:4px solid transparent;padding:0 4px;touch-action:none;cursor:default}
+  .dig.active.tens{border-color:var(--red);background:var(--red-soft);cursor:grab;animation:wob 1.2s infinite}
+  .dig.active.ones{border-color:var(--green);background:var(--green-soft);cursor:grab;animation:wob 1.2s infinite}
+  .dig.linked.tens{background:var(--red);color:#fff;border-color:var(--red);animation:none}
+  .dig.linked.ones{background:var(--green);color:#fff;border-color:var(--green);animation:none}
+  .dig.sel{outline:4px solid var(--blue);outline-offset:2px}
+  @keyframes wob{50%{transform:translateY(-4px)}}
+
+  .rowblock{margin:10px 0 18px;transition:.3s}
+  .rowblock.dim{opacity:.35;pointer-events:none;filter:grayscale(.6)}
+  .tag{display:block;text-align:center;font-weight:800;font-size:.95rem;letter-spacing:.04em;margin-bottom:4px}
+  .tag.red{color:var(--red)} .tag.green{color:var(--green)} .tag.blue{color:var(--blue)}
+  .eqrow{display:flex;justify-content:center;align-items:center;gap:clamp(6px,2vw,16px);font-size:clamp(1.8rem,6vw,2.6rem);font-weight:800}
+  .eqrow .sym{color:var(--muted)}
+  .box{border-radius:16px;border:4px solid #b9c6e0;background:#fff;width:clamp(78px,20vw,120px);height:clamp(58px,13vw,74px);display:flex;align-items:center;justify-content:center;transition:.2s}
+  .rowblock.t .box{border-color:#f3a6a4} .rowblock.o .box{border-color:#9bd7a8} .rowblock.f .box{border-color:#a9c4f7}
+  .box input{width:100%;height:100%;border:0;background:transparent;text-align:center;font:inherit;color:var(--ink);outline:0;border-radius:12px;padding:0;-moz-appearance:textfield}
+  .box:focus-within{box-shadow:0 0 0 4px rgba(47,111,237,.35)}
+  .box.static{background:#f2f6ff;color:var(--ink)}
+  .box.ok{background:#e8f9ec;border-color:var(--green)!important}
+  .box.wrong{background:#fff0f0;border-color:var(--red)!important;animation:shake .4s}
+  .box.hover{box-shadow:0 0 0 5px rgba(47,111,237,.45)}
+  .box.linked.t{border-color:var(--red)!important} .box.linked.o{border-color:var(--green)!important}
+  @keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+  svg.overlay{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:5}
+  svg.overlay path{fill:none;stroke-width:6;stroke-linecap:round}
+  svg.overlay circle{stroke:none}
+  svg.overlay .bad{stroke:#9aa5bd!important;stroke-dasharray:2 12}
+
+  .actions{display:flex;justify-content:center;gap:12px;margin:8px 0 4px;flex-wrap:wrap}
+  .btn{border:0;border-radius:999px;padding:12px 30px;font-size:1.25rem;font-weight:800;color:#fff;background:var(--blue);box-shadow:0 5px 0 #1f4db0;transition:transform .1s}
+  .btn:active{transform:translateY(3px);box-shadow:0 2px 0 #1f4db0}
+  .btn.go{background:var(--green);box-shadow:0 5px 0 #1d7530}
+  .btn.go:active{box-shadow:0 2px 0 #1d7530}
+  .btn.ghost{background:#fff;color:var(--ink);box-shadow:0 3px 0 #c5d0e6}
+  .btn[hidden]{display:none}
+
+  /* ---------- pochwała ---------- */
+  .praise{display:none;text-align:center;margin-top:8px;padding:14px;border-radius:20px;background:linear-gradient(135deg,#fff3c4,#ffe0f0);border:3px solid #ffca28}
+  .praise.show{display:block;animation:pop .5s}
+  .praise .big{font-size:clamp(1.3rem,4.5vw,1.9rem);font-weight:800}
+  .praise .small{margin-top:4px;color:var(--muted);font-weight:700}
+  @keyframes pop{0%{transform:scale(.7);opacity:0}70%{transform:scale(1.05)}100%{transform:scale(1);opacity:1}}
+
+  /* ---------- układanka ---------- */
+  .puzzle-card h2{margin:0 0 8px;font-size:1.15rem;display:flex;justify-content:space-between;align-items:center}
+  .puzzle{position:relative;aspect-ratio:5/4;border-radius:16px;overflow:hidden;box-shadow:inset 0 0 0 3px #fff,0 0 0 3px #b9c6e0;background:#1b2a5a;max-width:420px;margin:0 auto}
+  .puzzle svg.art{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .tiles{position:absolute;inset:0;display:grid;grid-template-columns:repeat(5,1fr);grid-template-rows:repeat(4,1fr)}
+  .tile{display:flex;align-items:center;justify-content:center;color:#cfe4ff;font-weight:800;font-size:clamp(.9rem,3vw,1.2rem);background:linear-gradient(135deg,#5b7bd1,#3a56a8);border:2px solid #dce8ff;border-radius:6px;transition:opacity .9s,transform .9s}
+  .tile.off{opacity:0;transform:scale(.3) rotate(25deg);pointer-events:none}
+  .tile.new{animation:flash 1.2s}
+  @keyframes flash{50%{background:#ffd54f}}
+  .puzzle-note{text-align:center;color:var(--muted);font-weight:700;margin-top:8px;font-size:.95rem}
+
+  /* ---------- ekrany ---------- */
+  .overlay-screen{position:fixed;inset:0;background:linear-gradient(180deg,#bfe0ff,#f4fbff);z-index:50;display:none;align-items:center;justify-content:center;padding:16px;overflow:auto}
+  .overlay-screen.show{display:flex}
+  .screen-card{max-width:560px;width:100%;text-align:center}
+  .screen-card h1{font-size:clamp(1.6rem,6vw,2.4rem);margin:6px 0}
+  .screen-card ol{text-align:left;font-size:1.1rem;line-height:1.6;padding-left:1.3em}
+  .screen-card input.name{font:inherit;font-size:1.2rem;padding:10px 14px;border-radius:14px;border:3px solid #b9c6e0;width:100%;max-width:300px;text-align:center}
+  .trophy{font-size:clamp(5rem,26vw,9rem);line-height:1;animation:bounce 1.4s infinite;filter:drop-shadow(0 8px 10px rgba(0,0,0,.2))}
+  @keyframes bounce{50%{transform:translateY(-14px) rotate(3deg)}}
+  .final-art{max-width:320px;margin:10px auto;border-radius:16px;overflow:hidden;box-shadow:0 0 0 4px #ffd54f}
+  .final-art svg{display:block;width:100%;height:auto}
+  .stars{font-size:1.5rem;margin:6px 0}
+  canvas#confetti{position:fixed;inset:0;pointer-events:none;z-index:99;width:100%;height:100%}
+  .dot-red{color:var(--red)} .dot-green{color:var(--green)}
+</style>
+</head>
+<body>
+
+<!-- EKRAN STARTOWY -->
+<div class="overlay-screen show" id="startScreen">
+  <div class="card screen-card">
+    <div style="font-size:3.6rem">🦌🎄</div>
+    <h1>Misja Renifer</h1>
+    <p style="margin:0 0 6px;font-weight:700;color:var(--muted)">Dodawanie i odejmowanie – dziesiątki i jedności</p>
+    <ol>
+      <li>Rozpisz przykład na <b class="dot-red">dziesiątki</b> i <b class="dot-green">jedności</b>.</li>
+      <li>Połącz liczby liniami: <b class="dot-red">czerwona</b> – dziesiątki, <b class="dot-green">zielona</b> – jedności.</li>
+      <li>Policz wszystko razem. Za każdy dobry przykład dostajesz <b>kawałek układanki</b>!</li>
+    </ol>
+    <p style="margin:6px 0 4px">Jak masz na imię? <span style="color:var(--muted)">(nie musisz)</span></p>
+    <input class="name" id="nameInput" maxlength="20" placeholder="Twoje imię" autocomplete="off">
+    <div class="actions" style="margin-top:16px"><button class="btn go" id="startBtn">Zaczynamy! 🚀</button></div>
+  </div>
+</div>
+
+<!-- EKRAN KOŃCOWY -->
+<div class="overlay-screen" id="endScreen">
+  <div class="card screen-card">
+    <div class="trophy">🏆</div>
+    <h1 id="endTitle">Gratulacje!</h1>
+    <p style="font-size:1.2rem;font-weight:700;margin:4px 0">Zdobywasz <span style="color:var(--accent)">PUCHAR MISTRZA LICZENIA</span>!<br>Cała układanka jest gotowa!</p>
+    <div class="final-art" id="finalArt"></div>
+    <div class="stars" id="endStars"></div>
+    <div class="actions"><button class="btn go" id="againBtn">Zagraj jeszcze raz 🔁</button></div>
+  </div>
+</div>
+
+<canvas id="confetti"></canvas>
+
+<div class="app">
+  <header class="top">
+    <h1>🦌 Misja Renifer</h1>
+    <span class="pill" id="counter">Zadanie 1 z 20</span>
+    <span class="pill" id="starsPill">⭐ 0</span>
+    <button class="icon-btn" id="soundBtn" title="Dźwięk">🔊</button>
+  </header>
+  <div class="progress" id="progress"></div>
+
+  <div class="layout">
+    <section class="card" id="taskCard">
+      <div class="coach"><span class="face">🦸</span><div id="coachText"></div></div>
+      <div class="stage" id="stage">
+        <div class="example" id="example"></div>
+        <div class="rowblock t" id="rowT"></div>
+        <div class="rowblock o" id="rowO"></div>
+        <div class="rowblock f" id="rowF"></div>
+        <svg class="overlay" id="overlay"></svg>
+      </div>
+      <div class="actions">
+        <button class="btn" id="checkBtn">Sprawdź ✔</button>
+        <button class="btn go" id="nextBtn" hidden>Dalej ➜</button>
+      </div>
+      <div class="praise" id="praise"><div class="big" id="praiseBig"></div><div class="small" id="praiseSmall"></div></div>
+    </section>
+
+    <aside class="card puzzle-card">
+      <h2><span>🧩 Układanka</span><span id="pieces">0 / 20</span></h2>
+      <div class="puzzle" id="puzzle">
+        <div class="tiles" id="tiles"></div>
+      </div>
+      <div class="puzzle-note" id="puzzleNote">Rozwiązuj przykłady i odkrywaj renifera!</div>
+    </aside>
+  </div>
+</div>
+
+<script>
+/* ======================= SVG: renifer ======================= */
+const REINDEER_SVG = `
+<svg viewBox="0 0 500 400" xmlns="http://www.w3.org/2000/svg" class="art" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#14224f"/><stop offset="1" stop-color="#3f64b8"/></linearGradient>
+    <radialGradient id="moon" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fffbe0"/><stop offset="1" stop-color="#ffe9a0"/></radialGradient>
+  </defs>
+  <rect width="500" height="400" fill="url(#sky)"/>
+  <circle cx="430" cy="55" r="32" fill="url(#moon)"/>
+  <g fill="#fff" opacity=".9">
+    <circle cx="40" cy="40" r="2.5"/><circle cx="90" cy="95" r="2"/><circle cx="150" cy="30" r="3"/><circle cx="330" cy="40" r="2.5"/>
+    <circle cx="380" cy="110" r="2"/><circle cx="470" cy="150" r="2.5"/><circle cx="25" cy="170" r="2"/><circle cx="60" cy="250" r="3"/>
+    <circle cx="455" cy="240" r="3"/><circle cx="300" cy="90" r="1.8"/><circle cx="210" cy="60" r="2"/><circle cx="120" cy="160" r="1.8"/>
+  </g>
+  <!-- ziemia -->
+  <ellipse cx="250" cy="420" rx="330" ry="70" fill="#f4f9ff"/>
+  <!-- choinki -->
+  <g><polygon points="45,330 15,390 75,390" fill="#1f7a3f"/><polygon points="45,300 22,350 68,350" fill="#27944c"/><rect x="40" y="388" width="10" height="12" fill="#6b4423"/></g>
+  <g><polygon points="455,330 425,390 485,390" fill="#1f7a3f"/><polygon points="455,300 432,350 478,350" fill="#27944c"/><rect x="450" y="388" width="10" height="12" fill="#6b4423"/></g>
+  <!-- poroże -->
+  <g id="antler" stroke="#7a4a1f" stroke-width="11" stroke-linecap="round" fill="none">
+    <path d="M205 135 C190 100 175 75 165 35"/>
+    <path d="M187 88 C170 82 150 85 132 66"/>
+    <path d="M178 62 C165 55 150 52 138 36"/>
+    <path d="M195 112 C178 112 162 120 150 108"/>
+  </g>
+  <g stroke="#7a4a1f" stroke-width="11" stroke-linecap="round" fill="none" transform="translate(500,0) scale(-1,1)">
+    <path d="M205 135 C190 100 175 75 165 35"/>
+    <path d="M187 88 C170 82 150 85 132 66"/>
+    <path d="M178 62 C165 55 150 52 138 36"/>
+    <path d="M195 112 C178 112 162 120 150 108"/>
+  </g>
+  <!-- szyja -->
+  <path d="M170 300 Q250 330 330 300 L350 400 L150 400 Z" fill="#a8693a"/>
+  <!-- uszy -->
+  <g><ellipse cx="160" cy="165" rx="34" ry="20" fill="#b97a45" transform="rotate(-25 160 165)"/><ellipse cx="162" cy="165" rx="22" ry="11" fill="#f4b6b6" transform="rotate(-25 162 165)"/></g>
+  <g><ellipse cx="340" cy="165" rx="34" ry="20" fill="#b97a45" transform="rotate(25 340 165)"/><ellipse cx="338" cy="165" rx="22" ry="11" fill="#f4b6b6" transform="rotate(25 338 165)"/></g>
+  <!-- głowa -->
+  <path d="M250 120 C185 120 165 175 175 225 C185 285 215 315 250 315 C285 315 315 285 325 225 C335 175 315 120 250 120Z" fill="#c4854d"/>
+  <ellipse cx="250" cy="268" rx="62" ry="50" fill="#f0cfa6"/>
+  <!-- oczy -->
+  <circle cx="213" cy="200" r="19" fill="#fff"/><circle cx="287" cy="200" r="19" fill="#fff"/>
+  <circle cx="216" cy="203" r="10" fill="#2a1a10"/><circle cx="284" cy="203" r="10" fill="#2a1a10"/>
+  <circle cx="220" cy="198" r="3.5" fill="#fff"/><circle cx="288" cy="198" r="3.5" fill="#fff"/>
+  <path d="M192 176 Q213 164 234 176" stroke="#7a4a1f" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <path d="M266 176 Q287 164 308 176" stroke="#7a4a1f" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <!-- policzki, nos, uśmiech -->
+  <circle cx="190" cy="250" r="14" fill="#ff9aa2" opacity=".6"/><circle cx="310" cy="250" r="14" fill="#ff9aa2" opacity=".6"/>
+  <circle cx="250" cy="255" r="24" fill="#e53935"/><circle cx="242" cy="247" r="7" fill="#ff8a80"/>
+  <path d="M250 280 L250 292" stroke="#7a4a1f" stroke-width="4" stroke-linecap="round"/>
+  <path d="M222 292 Q250 318 278 292" stroke="#7a4a1f" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <!-- szalik -->
+  <path d="M158 322 Q250 360 342 322 L350 362 Q250 400 150 362 Z" fill="#e53935"/>
+  <path d="M185 334 L180 378 M225 345 L222 390 M275 345 L278 390 M315 334 L320 378" stroke="#fff" stroke-width="12" stroke-linecap="round"/>
+  <circle cx="250" cy="372" r="11" fill="#ffd54f" stroke="#e0a800" stroke-width="3"/>
+  <!-- czapka -->
+  <path d="M205 135 Q250 60 300 118 Q250 110 205 135Z" fill="#e53935"/>
+  <path d="M200 138 Q250 118 304 122" stroke="#fff" stroke-width="14" stroke-linecap="round" fill="none"/>
+  <circle cx="303" cy="108" r="11" fill="#fff"/>
+  <!-- śnieg -->
+  <g fill="#fff" opacity=".95"><circle cx="100" cy="120" r="4"/><circle cx="380" cy="190" r="4"/><circle cx="70" cy="300" r="3"/><circle cx="420" cy="320" r="4"/><circle cx="340" cy="60" r="3"/><circle cx="125" cy="215" r="3"/><circle cx="395" cy="85" r="3"/></g>
+</svg>`;
+
+/* ======================= Dane: 100 przykładów ======================= */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function shuffle(arr,rnd=Math.random){const a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+
+function buildBank(){
+  const rnd=mulberry32(20241);
+  const addNo=[],addC=[],sub=[];
+  for(let at=1;at<=9;at++)for(let ao=1;ao<=9;ao++)for(let bt=1;bt<=9;bt++)for(let bo=1;bo<=9;bo++){
+    let a=at*10+ao,b=bt*10+bo;
+    if(a+b<=99&&a>b){
+      const swap=rnd()<.5;
+      const item={type:'add',a:swap?b:a,b:swap?a:b};
+      (ao+bo<=9?addNo:addC).push(item);
+    }
+    if(a>b&&ao>bo&&at>bt) sub.push({type:'sub',a,b});
+  }
+  const take=(list,n,p)=>shuffle(list,rnd).slice(0,n).map((t,i)=>({...t,id:p+i}));
+  return {addNo:take(addNo,30,'n'),addC:take(addC,20,'c'),sub:take(sub,50,'s')};
+}
+const BANK=buildBank();            // 30 + 20 + 50 = 100 przykładów
+const PER_ROUND={addNo:6,addC:4,sub:10}; // = 20 w rundzie
+const USED_KEY='dj_used_v1';
+function loadUsed(){try{return JSON.parse(localStorage.getItem(USED_KEY))||{}}catch(e){return {}}}
+function saveUsed(u){try{localStorage.setItem(USED_KEY,JSON.stringify(u))}catch(e){}}
+
+function pickRound(){
+  const used=loadUsed();let round=[];
+  for(const cat of Object.keys(PER_ROUND)){
+    let usedIds=new Set(used[cat]||[]);
+    let avail=BANK[cat].filter(t=>!usedIds.has(t.id));
+    if(avail.length<PER_ROUND[cat]){usedIds=new Set();avail=BANK[cat].slice()}
+    const chosen=shuffle(avail).slice(0,PER_ROUND[cat]);
+    chosen.forEach(t=>usedIds.add(t.id));
+    used[cat]=[...usedIds];
+    round=round.concat(chosen);
+  }
+  saveUsed(used);
+  return shuffle(round).map(t=>{
+    const at=Math.floor(t.a/10)*10,ao=t.a%10,bt=Math.floor(t.b/10)*10,bo=t.b%10,add=t.type==='add';
+    return {...t,at,ao,bt,bo,add,rt:add?at+bt:at-bt,ro:add?ao+bo:ao-bo,res:add?t.a+t.b:t.a-t.b};
+  });
+}
+
+/* ======================= Pochwały ======================= */
+const PRAISES=[
+ 'Tak trzymaj! Jesteś superbohaterem matematyki! 🦸',
+ 'Brawo! Liczysz jak prawdziwy mistrz! 🏅',
+ 'Rewelacja! Dziesiątki i jedności nie mają przed Tobą tajemnic! 🔍',
+ 'Super! Twój mózg działa jak rakieta! 🚀',
+ 'Fantastycznie! Reniferki są z Ciebie dumne! 🦌',
+ 'Wow! Ale Ci to dobrze poszło! 🌟',
+ 'Jesteś niesamowity! Liczysz błyskawicznie! ⚡',
+ 'Brawo, bohaterze liczb! 🦸‍♂️',
+ 'Świetna robota! Tak dalej! 💪',
+ 'Mistrzowsko! Santa by Cię pochwalił! 🎅',
+ 'Jesteś gwiazdą matematyki! ⭐',
+ 'Doskonale! Kolejny kawałek układanki Twój! 🧩',
+ 'Ekstra! Jesteś na dobrej drodze po puchar! 🏆',
+ 'Brawo! Czerwone i zielone linie wiedzą, że jesteś super! ❤️💚',
+ 'Hurra! Liczenie to Twoja supermoc! 🦸‍♀️',
+ 'Tak jest! Nic Cię nie zatrzyma! 🚂',
+ 'Wspaniale! Jeszcze jeden i jeszcze jeden! 🎉',
+ 'Znakomicie! Śnieżynki biją Ci brawo! ❄️👏',
+ 'Pięknie policzone! 🎄',
+ 'Jesteś najlepszy! Kolejne zadanie czeka! 🥇'
+];
+let praiseBag=[];
+function nextPraise(){if(!praiseBag.length)praiseBag=shuffle(PRAISES);return praiseBag.pop()}
+
+/* ======================= Dźwięk ======================= */
+let soundOn=true,actx=null;
+function tone(freq,t0,dur,type='sine',vol=.15){
+  if(!soundOn)return;
+  try{
+    actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+    const o=actx.createOscillator(),g=actx.createGain();
+    o.type=type;o.frequency.value=freq;o.connect(g);g.connect(actx.destination);
+    const s=actx.currentTime+t0;g.gain.setValueAtTime(vol,s);g.gain.exponentialRampToValueAtTime(.001,s+dur);
+    o.start(s);o.stop(s+dur);
+  }catch(e){}
+}
+const sndOk=()=>[523,659,784,1047].forEach((f,i)=>tone(f,i*.1,.25,'triangle'));
+const sndStep=()=>{tone(660,0,.12,'triangle');tone(880,.1,.15,'triangle')};
+const sndBad=()=>tone(180,0,.25,'sawtooth',.08);
+const sndWin=()=>[523,659,784,1047,784,1047,1319].forEach((f,i)=>tone(f,i*.14,.3,'triangle',.18));
+
+/* ======================= Konfetti ======================= */
+const cv=document.getElementById('confetti'),cx=cv.getContext('2d');let parts=[],anim=false;
+function sizeCv(){cv.width=innerWidth;cv.height=innerHeight}addEventListener('resize',sizeCv);sizeCv();
+function confetti(n=80,x=innerWidth/2,y=innerHeight/3,spread=1){
+  const cols=['#e53935','#2e9e44','#ffca28','#2f6fed','#ff6fb5','#fff'];
+  for(let i=0;i<n;i++)parts.push({x,y,vx:(Math.random()-.5)*14*spread,vy:Math.random()*-12*spread-3,g:.35,s:5+Math.random()*7,c:cols[i%cols.length],r:Math.random()*6,vr:(Math.random()-.5)*.4,life:100+Math.random()*60});
+  if(!anim){anim=true;requestAnimationFrame(tick)}
+}
+function tick(){
+  cx.clearRect(0,0,cv.width,cv.height);
+  parts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=p.g;p.r+=p.vr;p.life--;cx.save();cx.translate(p.x,p.y);cx.rotate(p.r);cx.fillStyle=p.c;cx.fillRect(-p.s/2,-p.s/2,p.s,p.s*.6);cx.restore()});
+  parts=parts.filter(p=>p.life>0&&p.y<cv.height+20);
+  if(parts.length)requestAnimationFrame(tick);else{anim=false;cx.clearRect(0,0,cv.width,cv.height)}
+}
+
+/* ======================= Stan gry ======================= */
+const $=s=>document.querySelector(s);
+const TOTAL=20;
+const RED='#e53935',GREEN='#2e9e44';
+let round=[],idx=0,task=null,phase=0,mistakes=0,stars=0,lines=[],revealOrder=[],playerName='',selected=null,drag=null,locked=false;
+
+const stage=$('#stage'),overlay=$('#overlay');
+
+function init(){
+  $('#puzzle').insertAdjacentHTML('afterbegin',REINDEER_SVG);
+  const tiles=$('#tiles');tiles.innerHTML='';
+  for(let i=0;i<TOTAL;i++){const d=document.createElement('div');d.className='tile';d.textContent='❄';tiles.appendChild(d)}
+  try{playerName=localStorage.getItem('dj_name')||''}catch(e){}
+  $('#nameInput').value=playerName;
+}
+function startGame(){
+  playerName=$('#nameInput').value.trim();
+  try{localStorage.setItem('dj_name',playerName)}catch(e){}
+  $('#startScreen').classList.remove('show');$('#endScreen').classList.remove('show');
+  round=pickRound();idx=0;stars=0;
+  revealOrder=shuffle([...Array(TOTAL).keys()]);
+  document.querySelectorAll('.tile').forEach(t=>t.classList.remove('off','new'));
+  $('#pieces').textContent='0 / '+TOTAL;
+  $('#puzzleNote').textContent='Rozwiązuj przykłady i odkrywaj renifera!';
+  $('#progress').innerHTML=round.map(()=>'<i></i>').join('');
+  startTask();
+}
+
+/* ---------- pojedyncze zadanie ---------- */
+const OP=t=>t.add?'+':'−';
+function digitsHTML(owner,v){
+  const T=Math.floor(v/10),O=v%10;
+  return `<span class="num"><span class="dig tens" data-kind="tens" data-owner="${owner}">${T}</span><span class="dig ones" data-kind="ones" data-owner="${owner}">${O}</span></span>`;
+}
+function boxIn(kind,owner){return `<div class="box" data-kind="${kind}" data-owner="${owner}"><input inputmode="numeric" maxlength="3" autocomplete="off" aria-label="${kind==='tens'?'dziesiątki':'jedności'} ${owner}"></div>`}
+function boxRes(kind){return `<div class="box res" data-kind="${kind}" data-owner="r"><input inputmode="numeric" maxlength="3" autocomplete="off" aria-label="wynik"></div>`}
+function startTask(){
+  task=round[idx];phase=0;mistakes=0;lines=[];selected=null;drag=null;locked=false;
+  $('#counter').textContent=`Zadanie ${idx+1} z ${TOTAL}`;
+  $('#starsPill').textContent='⭐ '+stars;
+  [...$('#progress').children].forEach((c,i)=>{c.className=i<idx?'done':i===idx?'cur':''});
+  $('#praise').classList.remove('show');
+  $('#nextBtn').hidden=true;$('#checkBtn').hidden=false;
+  const t=task,op=OP(t);
+  $('#example').innerHTML=`${digitsHTML('a',t.a)}<span class="op">${op}</span>${digitsHTML('b',t.b)}<span class="eq">=</span><span class="q">?</span>`;
+  $('#rowT').innerHTML=`<span class="tag red">🔴 DZIESIĄTKI</span><div class="eqrow">${boxIn('tens','a')}<span class="sym">${op}</span>${boxIn('tens','b')}<span class="sym">=</span>${boxRes('tens')}</div>`;
+  $('#rowO').innerHTML=`<span class="tag green">🟢 JEDNOŚCI</span><div class="eqrow">${boxIn('ones','a')}<span class="sym">${op}</span>${boxIn('ones','b')}<span class="sym">=</span>${boxRes('ones')}</div>`;
+  $('#rowF').innerHTML=`<span class="tag blue">🔵 RAZEM</span><div class="eqrow"><div class="box static" id="fT"></div><span class="sym">+</span><div class="box static" id="fO"></div><span class="sym">=</span><div class="box" id="fR"><input inputmode="numeric" maxlength="3" autocomplete="off" aria-label="wynik końcowy"></div></div>`;
+  applyPhase();
+  drawLines();
+}
+function rowEl(kind){return kind==='tens'?$('#rowT'):$('#rowO')}
+function applyPhase(){
+  $('#rowT').classList.toggle('dim',phase!==0);
+  $('#rowO').classList.toggle('dim',phase!==1);
+  $('#rowF').classList.toggle('dim',phase!==2);
+  document.querySelectorAll('.dig').forEach(d=>{
+    d.classList.toggle('active',(phase===0&&d.dataset.kind==='tens'||phase===1&&d.dataset.kind==='ones')&&!d.classList.contains('linked'));
+  });
+  const msgs=[
+    'Krok 1: Rozpisz <b class="r">DZIESIĄTKI</b> w czerwonym rzędzie. Potem <b>przeciągnij palcem</b> czerwoną linię od cyfry dziesiątek w przykładzie do jej pola (albo dotknij cyfrę, a potem pole).',
+    'Świetnie! Krok 2: Teraz <b class="g">JEDNOŚCI</b>. Wpisz je w zielonym rzędzie i połącz zielonymi liniami cyfry jedności z polami.',
+    `Krok 3: Dodaj razem to, co wyszło: ${task.rt} i ${task.ro}. Ile to jest razem?`
+  ];
+  setCoach(msgs[phase]);
+  if(phase===2){$('#fT').textContent=task.rt;$('#fO').textContent=task.ro}
+  const rb=[$('#rowT'),$('#rowO'),$('#rowF')][phase];
+  const first=rb.querySelector('input');if(first)setTimeout(()=>first.focus({preventScroll:true}),50);
+}
+function setCoach(html){$('#coachText').innerHTML=html}
+
+/* ---------- linie ---------- */
+function relPoint(el,where){
+  const r=el.getBoundingClientRect(),s=stage.getBoundingClientRect();
+  return {x:r.left+r.width/2-s.left,y:(where==='bottom'?r.bottom:r.top)-s.top};
+}
+function curve(p,q,owner,kind){
+  const bow=(owner==='a'?-1:1)*(kind==='ones'?55:28);
+  const dy=(q.y-p.y);
+  return `M${p.x} ${p.y} C${p.x+bow} ${p.y+dy*.35} ${q.x+bow} ${q.y-dy*.35} ${q.x} ${q.y}`;
+}
+function drawLines(){
+  let h='';
+  lines.forEach(l=>{
+    const p=relPoint(l.chip,'bottom'),q=relPoint(l.box,'top'),c=l.kind==='tens'?RED:GREEN;
+    h+=`<path d="${curve({x:p.x,y:p.y-2},{x:q.x,y:q.y+2},l.owner,l.kind)}" stroke="${c}"/><circle cx="${p.x}" cy="${p.y}" r="7" fill="${c}"/><circle cx="${q.x}" cy="${q.y}" r="7" fill="${c}"/>`;
+  });
+  if(drag&&drag.cur){
+    const p=relPoint(drag.chip,'bottom'),c=drag.chip.dataset.kind==='tens'?RED:GREEN;
+    h+=`<path d="M${p.x} ${p.y} L${drag.cur.x} ${drag.cur.y}" stroke="${c}" opacity=".7"/><circle cx="${drag.cur.x}" cy="${drag.cur.y}" r="9" fill="${c}"/>`;
+  }
+  overlay.innerHTML=h;
+}
+addEventListener('resize',drawLines);
+
+function flashBad(chip,box){
+  const p=relPoint(chip,'bottom'),q=relPoint(box,'top');
+  overlay.insertAdjacentHTML('beforeend',`<path class="bad" d="M${p.x} ${p.y} L${q.x} ${q.y}" stroke="#999"/>`);
+  setTimeout(drawLines,550);
+}
+function connect(chip,box){
+  const ck=chip.dataset.kind,co=chip.dataset.owner,bk=box.dataset.kind,bo=box.dataset.owner;
+  const need=phase===0?'tens':'ones';
+  if(ck!==need){setCoach(`Teraz łączymy tylko ${need==='tens'?'<b class="r">dziesiątki</b> (czerwone)':'<b class="g">jedności</b> (zielone)'}.`);return false}
+  if(bk!==ck){mistakes++;sndBad();flashBad(chip,box);setCoach(`Ta linia nie pasuje. ${ck==='tens'?'<b class="r">Dziesiątki</b> łączymy z czerwonym rzędem':'<b class="g">Jedności</b> łączymy z zielonym rzędem'}.`);return false}
+  if(bo!==co){mistakes++;sndBad();flashBad(chip,box);setCoach('Prawie! Ta cyfra należy do <b>innej liczby</b>. Spójrz jeszcze raz, skąd się bierze to pole.');return false}
+  lines=lines.filter(l=>l.chip!==chip&&l.box!==box);
+  lines.push({chip,box,kind:ck,owner:co});
+  chip.classList.add('linked');chip.classList.remove('active','sel');
+  box.classList.add('linked',ck==='tens'?'t':'o');
+  selected=null;sndStep();
+  const left=2-lines.filter(l=>l.kind===ck).length;
+  setCoach(left>0?`Dobrze! Połącz jeszcze ${left} ${ck==='tens'?'<b class="r">czerwoną</b>':'<b class="g">zieloną</b>'} linię.`:`Wszystkie linie połączone! 👍 Sprawdź, czy wpisane liczby są dobre i kliknij <b>Sprawdź</b>.`);
+  drawLines();return true;
+}
+
+/* zdarzenia wskaźnika */
+stage.addEventListener('pointerdown',e=>{
+  if(locked||phase>1)return;
+  const chip=e.target.closest('.dig');
+  const box=e.target.closest('.box[data-kind]');
+  if(selected&&box&&box.dataset.kind&&!box.classList.contains('static')){connect(selected,box);selected&&selected.classList.remove('sel');selected=null;drawLines();return}
+  if(!chip)return;
+  if(chip.classList.contains('linked')){ // usuń linię i pozwól narysować nową
+    const l=lines.find(x=>x.chip===chip);
+    if(l){l.box.classList.remove('linked','t','o');lines=lines.filter(x=>x!==l);chip.classList.remove('linked');applyActive();}
+  }
+  const need=phase===0?'tens':'ones';
+  if(chip.dataset.kind!==need){setCoach(`Teraz łączymy tylko ${need==='tens'?'<b class="r">dziesiątki</b> (czerwone)':'<b class="g">jedności</b> (zielone)'}.`);return}
+  e.preventDefault();
+  try{stage.setPointerCapture(e.pointerId)}catch(_){}
+  drag={chip,start:{x:e.clientX,y:e.clientY},moved:false,cur:null};
+  if(selected)selected.classList.remove('sel');
+});
+function applyActive(){document.querySelectorAll('.dig').forEach(d=>{d.classList.toggle('active',(phase===0&&d.dataset.kind==='tens'||phase===1&&d.dataset.kind==='ones')&&!d.classList.contains('linked'))})}
+stage.addEventListener('pointermove',e=>{
+  if(!drag)return;
+  const s=stage.getBoundingClientRect();
+  if(Math.hypot(e.clientX-drag.start.x,e.clientY-drag.start.y)>8)drag.moved=true;
+  drag.cur={x:e.clientX-s.left,y:e.clientY-s.top};
+  document.querySelectorAll('.box.hover').forEach(b=>b.classList.remove('hover'));
+  const el=document.elementFromPoint(e.clientX,e.clientY),b=el&&el.closest('.box[data-kind]');
+  if(b&&!b.classList.contains('static'))b.classList.add('hover');
+  drawLines();
+});
+function endDrag(e,cancel){
+  if(!drag)return;
+  document.querySelectorAll('.box.hover').forEach(b=>b.classList.remove('hover'));
+  const d=drag;drag=null;
+  if(!cancel){
+    if(d.moved){
+      const el=document.elementFromPoint(e.clientX,e.clientY),b=el&&el.closest('.box[data-kind]');
+      if(b&&!b.classList.contains('static'))connect(d.chip,b);
+    }else{ // dotknięcie: zaznacz cyfrę, potem dotknij pole
+      selected=d.chip;d.chip.classList.add('sel');
+      setCoach('Dobrze! Teraz dotknij <b>pole</b>, z którym chcesz połączyć tę cyfrę.');
+    }
+  }
+  drawLines();
+}
+stage.addEventListener('pointerup',e=>endDrag(e,false));
+stage.addEventListener('pointercancel',e=>endDrag(e,true));
+
+/* ---------- sprawdzanie ---------- */
+function readRow(rb){return [...rb.querySelectorAll('input')].map(i=>i.value.trim())}
+function check(){
+  if(locked)return;
+  const t=task;
+  if(phase===0||phase===1){
+    const kind=phase===0?'tens':'ones',rb=rowEl(kind);
+    const exp=kind==='tens'?[t.at,t.bt,t.rt]:[t.ao,t.bo,t.ro];
+    const vals=readRow(rb),inputs=[...rb.querySelectorAll('input')];
+    let bad=[];
+    vals.forEach((v,i)=>{if(v===''||+v!==exp[i])bad.push(i)});
+    inputs.forEach((inp,i)=>inp.parentElement.classList.toggle('wrong',bad.includes(i)));
+    if(bad.length){
+      mistakes++;sndBad();
+      const empty=vals.some(v=>v==='');
+      if(empty)setCoach('Wypełnij wszystkie trzy pola w tym rzędzie. 😊');
+      else if(bad.length===1&&bad[0]===2)setCoach(`Dobrze rozpisane! Ale sprawdź wynik: ${exp[0]} ${OP(t)} ${exp[1]} to ile?`);
+      else if(kind==='tens')setCoach(`Policz jeszcze raz. W liczbie <b>${t.a}</b> dziesiątki to <b>${t.at}</b>, a w liczbie <b>${t.b}</b> to <b>${t.bt}</b>.`);
+      else setCoach(`Policz jeszcze raz. W liczbie <b>${t.a}</b> jedności to <b>${t.ao}</b>, a w liczbie <b>${t.b}</b> to <b>${t.bo}</b>.`);
+      return;
+    }
+    if(lines.filter(l=>l.kind===kind).length<2){
+      setCoach(`Liczby są dobre! 👏 Teraz połącz ${kind==='tens'?'<b class="r">czerwonymi</b>':'<b class="g">zielonymi</b>'} liniami cyfry w przykładzie u góry z polami w rzędzie.`);
+      return;
+    }
+    inputs.forEach(i=>{i.readOnly=true;i.parentElement.classList.add('ok')});
+    sndStep();phase++;applyPhase();drawLines();
+    return;
+  }
+  // faza 3 – wynik końcowy
+  const inp=$('#fR input'),v=inp.value.trim();
+  if(v===''||+v!==t.res){
+    mistakes++;sndBad();$('#fR').classList.add('wrong');
+    setCoach(v===''?'Wpisz wynik. 😊':`Prawie! Dodaj jeszcze raz: <b>${t.rt} + ${t.ro}</b>. Zacznij od dziesiątek.`);
+    setTimeout(()=>$('#fR').classList.remove('wrong'),450);
+    return;
+  }
+  inp.readOnly=true;$('#fR').classList.add('ok');
+  finishTask();
+}
+function finishTask(){
+  locked=true;
+  const perfect=mistakes===0;if(perfect)stars++;
+  $('#starsPill').textContent='⭐ '+stars;
+  const tile=document.querySelectorAll('.tile')[revealOrder[idx]];
+  tile.classList.add('off','new');
+  const got=idx+1;$('#pieces').textContent=got+' / '+TOTAL;
+  $('#checkBtn').hidden=true;
+  const nm=playerName&&Math.random()<.5?`${playerName}, `:'';
+  $('#praiseBig').textContent=(nm?nm.charAt(0).toUpperCase()+nm.slice(1):'')+nextPraise();
+  $('#praiseSmall').textContent=(perfect?'⭐ Bez żadnej pomyłki – dostajesz gwiazdkę! ':'')+'🧩 Nowy kawałek układanki jest Twój!';
+  $('#praise').classList.remove('show');void $('#praise').offsetWidth;$('#praise').classList.add('show');
+  const prog=$('#progress').children[idx];prog.className='done';
+  const left=TOTAL-got;
+  const notes={5:'Już 5 kawałków! Zaczyna być widać obrazek…',10:'Połowa układanki! Co to za zwierzak? 🤔',15:'Jeszcze tylko 5 kawałków! Prawie widać!'};
+  $('#puzzleNote').textContent=left===0?'Układanka gotowa! 🎉':(notes[got]||`Zostało ${left} kawałków do odkrycia.`);
+  const pr=$('#puzzle').getBoundingClientRect();
+  confetti(perfect?70:40,pr.left+pr.width/2,pr.top+pr.height/2,.7);
+  sndOk();
+  const next=$('#nextBtn');next.hidden=false;
+  next.textContent=idx===TOTAL-1?'Odbierz puchar 🏆':'Dalej ➜';
+  setCoach('Świetnie ci poszło! Kliknij <b>Dalej</b>, kiedy będziesz gotowy.');
+  next.focus({preventScroll:true});
+}
+function nextTask(){
+  if(idx===TOTAL-1){showEnd();return}
+  idx++;startTask();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function showEnd(){
+  $('#finalArt').innerHTML=REINDEER_SVG.replace('class="art"','');
+  $('#endTitle').textContent=playerName?`Gratulacje, ${playerName}!`:'Gratulacje!';
+  $('#endStars').innerHTML=stars+' z '+TOTAL+' przykładów bez pomyłki<br>'+'⭐'.repeat(Math.min(stars,20));
+  $('#endScreen').classList.add('show');
+  sndWin();
+  confetti(160,innerWidth/2,innerHeight/3,1.6);
+  setTimeout(()=>confetti(120,innerWidth*.25,innerHeight/2,1.3),500);
+  setTimeout(()=>confetti(120,innerWidth*.75,innerHeight/2,1.3),900);
+  setTimeout(()=>confetti(120,innerWidth/2,innerHeight/3,1.6),1500);
+}
+
+/* ---------- wejście z klawiatury ---------- */
+document.addEventListener('input',e=>{
+  if(e.target.matches('.box input')){
+    e.target.value=e.target.value.replace(/\D/g,'');
+    e.target.parentElement.classList.remove('wrong');
+  }
+});
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Enter')return;
+  if(!$('#nextBtn').hidden&&locked){nextTask();return}
+  const el=e.target;
+  if(el.matches&&el.matches('.box input')){
+    const inputs=[...document.querySelectorAll('.rowblock:not(.dim) .box input')].filter(i=>!i.readOnly);
+    const i=inputs.indexOf(el);
+    if(i>=0&&i<inputs.length-1&&inputs[i+1].value===''){inputs[i+1].focus();return}
+    check();
+  }
+});
+
+/* ---------- przyciski ---------- */
+$('#startBtn').addEventListener('click',startGame);
+$('#checkBtn').addEventListener('click',check);
+$('#nextBtn').addEventListener('click',nextTask);
+$('#againBtn').addEventListener('click',startGame);
+$('#soundBtn').addEventListener('click',()=>{soundOn=!soundOn;$('#soundBtn').textContent=soundOn?'🔊':'🔇'});
+init();
+</script>
+</body>
+</html>
