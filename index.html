@@ -270,9 +270,9 @@ function buildBank(){
     if(a>b&&ao>bo&&at>bt) sub.push({type:'sub',a,b});
   }
   const take=(list,n,p)=>shuffle(list,rnd).slice(0,n).map((t,i)=>({...t,id:p+i}));
-  return {addNo:take(addNo,30,'n'),addC:take(addC,20,'c'),sub:take(sub,50,'s')};
+  return {addNo:take(addNo,90,'n'),addC:take(addC,60,'c'),sub:take(sub,150,'s')};
 }
-const BANK=buildBank();            // 30 + 20 + 50 = 100 przykładów
+const BANK=buildBank();            // 90 + 60 + 150 = 300 przykładów
 const PER_ROUND={addNo:6,addC:4,sub:10}; // = 20 w rundzie
 const USED_KEY='dj_used_v1';
 function loadUsed(){try{return JSON.parse(localStorage.getItem(USED_KEY))||{}}catch(e){return {}}}
