@@ -57,15 +57,16 @@
   .dig.sel{outline:4px solid var(--blue);outline-offset:2px}
   @keyframes wob{50%{transform:translateY(-4px)}}
 
-  .rowblock{margin:10px 0 18px;transition:.3s}
+  .rowblock{margin:14px 0 16px;transition:.3s;display:flex;flex-direction:column}
   .rowblock.dim{opacity:.35;pointer-events:none;filter:grayscale(.6)}
-  .tag{display:block;text-align:center;font-weight:800;font-size:.95rem;letter-spacing:.04em;margin-bottom:4px}
+  .tag{display:block;text-align:center;font-weight:800;font-size:clamp(.8rem,2.6vw,.95rem);letter-spacing:.02em;margin:8px 0 0;order:2;color:var(--muted)}
   .tag.red{color:var(--red)} .tag.green{color:var(--green)} .tag.blue{color:var(--blue)}
-  .eqrow{display:flex;justify-content:center;align-items:center;gap:clamp(6px,2vw,16px);font-size:clamp(1.8rem,6vw,2.6rem);font-weight:800}
+  .eqrow{display:flex;justify-content:center;align-items:center;gap:clamp(3px,1.4vw,12px);font-size:clamp(1.3rem,5vw,2.3rem);font-weight:800}
   .eqrow .sym{color:var(--muted)}
-  .box{border-radius:16px;border:4px solid #b9c6e0;background:#fff;width:clamp(78px,20vw,120px);height:clamp(58px,13vw,74px);display:flex;align-items:center;justify-content:center;transition:.2s}
-  .rowblock.t .box{border-color:#f3a6a4} .rowblock.o .box{border-color:#9bd7a8} .rowblock.f .box{border-color:#a9c4f7}
-  .box input{width:100%;height:100%;border:0;background:transparent;text-align:center;font:inherit;color:var(--ink);outline:0;border-radius:12px;padding:0;-moz-appearance:textfield}
+  .box{border-radius:16px;border:4px solid #b9c6e0;background:#fff;width:clamp(52px,13vw,88px);height:clamp(50px,11vw,68px);display:flex;align-items:center;justify-content:center;transition:.2s}
+  .box.k-tens{border-color:#f3a6a4} .box.k-ones{border-color:#9bd7a8} .box.k-all{border-color:#a9c4f7}
+  .dig.inert{opacity:.85}
+  .box input{min-width:0;width:100%;height:100%;border:0;background:transparent;text-align:center;font:inherit;color:var(--ink);outline:0;border-radius:12px;padding:0;-moz-appearance:textfield}
   .box:focus-within{box-shadow:0 0 0 4px rgba(47,111,237,.35)}
   .box.static{background:#f2f6ff;color:var(--ink)}
   .box.ok{background:#e8f9ec;border-color:var(--green)!important}
@@ -129,9 +130,10 @@
     <h1>Misja Renifer</h1>
     <p style="margin:0 0 6px;font-weight:700;color:var(--muted)">Dodawanie i odejmowanie – dziesiątki i jedności</p>
     <ol>
-      <li>Rozpisz przykład na <b class="dot-red">dziesiątki</b> i <b class="dot-green">jedności</b>.</li>
+      <li><b>Dodawanie:</b> rozpisz obie liczby na <b class="dot-red">dziesiątki</b> i <b class="dot-green">jedności</b>, np. 51 + 13 = 50 + 10 + 1 + 3. Potem dodaj osobno dziesiątki i jedności.</li>
+      <li><b>Odejmowanie:</b> pierwszą liczbę zostaw, a drugą rozpisz, np. 26 − 13 = 26 − 10 − 3. Odejmij po kolei.</li>
       <li>Połącz liczby liniami: <b class="dot-red">czerwona</b> – dziesiątki, <b class="dot-green">zielona</b> – jedności.</li>
-      <li>Policz wszystko razem. Za każdy dobry przykład dostajesz <b>kawałek układanki</b>!</li>
+      <li>Za każdy dobry przykład dostajesz <b>kawałek układanki</b>!</li>
     </ol>
     <p style="margin:6px 0 4px">Jak masz na imię? <span style="color:var(--muted)">(nie musisz)</span></p>
     <input class="name" id="nameInput" maxlength="20" placeholder="Twoje imię" autocomplete="off">
@@ -167,9 +169,8 @@
       <div class="coach"><span class="face">🦸</span><div id="coachText"></div></div>
       <div class="stage" id="stage">
         <div class="example" id="example"></div>
-        <div class="rowblock t" id="rowT"></div>
-        <div class="rowblock o" id="rowO"></div>
-        <div class="rowblock f" id="rowF"></div>
+        <div class="rowblock" id="rowT"></div>
+        <div class="rowblock" id="rowO"></div>
         <svg class="overlay" id="overlay"></svg>
       </div>
       <div class="actions">
@@ -253,47 +254,52 @@ const REINDEER_SVG = `
   <g fill="#fff" opacity=".95"><circle cx="100" cy="120" r="4"/><circle cx="380" cy="190" r="4"/><circle cx="70" cy="300" r="3"/><circle cx="420" cy="320" r="4"/><circle cx="340" cy="60" r="3"/><circle cx="125" cy="215" r="3"/><circle cx="395" cy="85" r="3"/></g>
 </svg>`;
 
-/* ======================= Dane: 100 przykładów ======================= */
+/* ======================= Dane: 400 przykładów ======================= */
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 function shuffle(arr,rnd=Math.random){const a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 
 function buildBank(){
-  const rnd=mulberry32(20241);
-  const addNo=[],addC=[],sub=[];
+  const rnd=mulberry32(20242);
+  const addNo=[],addC=[],subE=[],subH=[];
   for(let at=1;at<=9;at++)for(let ao=1;ao<=9;ao++)for(let bt=1;bt<=9;bt++)for(let bo=1;bo<=9;bo++){
-    let a=at*10+ao,b=bt*10+bo;
+    const a=at*10+ao,b=bt*10+bo;
     if(a+b<=99&&a>b){
       const swap=rnd()<.5;
       const item={type:'add',a:swap?b:a,b:swap?a:b};
       (ao+bo<=9?addNo:addC).push(item);
     }
-    if(a>b&&ao>bo&&at>bt) sub.push({type:'sub',a,b});
+    if(at>bt) (ao>=bo?subE:subH).push({type:'sub',a,b}); // a>b zawsze; subH = przekroczenie dziesiątki
   }
   const take=(list,n,p)=>shuffle(list,rnd).slice(0,n).map((t,i)=>({...t,id:p+i}));
-  return {addNo:take(addNo,90,'n'),addC:take(addC,60,'c'),sub:take(sub,150,'s')};
+  return {addNo:take(addNo,90,'n'),addC:take(addC,60,'c'),subE:take(subE,150,'e'),subH:take(subH,100,'h')};
 }
-const BANK=buildBank();            // 90 + 60 + 150 = 300 przykładów
-const PER_ROUND={addNo:6,addC:4,sub:10}; // = 20 w rundzie
-const USED_KEY='dj_used_v1';
+const BANK=buildBank();            // 90 + 60 + 150 + 100 = 400 przykładów
+const PER_ROUND={addNo:6,addC:4,subE:7,subH:3}; // 10 dodawań + 10 odejmowań = 20
+const USED_KEY='dj_used_v2';
 function loadUsed(){try{return JSON.parse(localStorage.getItem(USED_KEY))||{}}catch(e){return {}}}
 function saveUsed(u){try{localStorage.setItem(USED_KEY,JSON.stringify(u))}catch(e){}}
 
+function derive(t){
+  const at=Math.floor(t.a/10)*10,ao=t.a%10,bt=Math.floor(t.b/10)*10,bo=t.b%10;
+  if(t.type==='add')return {...t,add:true,at,ao,bt,bo,rt:at+bt,ro:ao+bo,res:t.a+t.b,need:4};
+  const m=t.a-bt;
+  return {...t,add:false,at,ao,bt,bo,m,res:m-bo,need:2};
+}
 function pickRound(){
-  const used=loadUsed();let round=[];
+  const used=loadUsed(),pick={};
   for(const cat of Object.keys(PER_ROUND)){
     let usedIds=new Set(used[cat]||[]);
     let avail=BANK[cat].filter(t=>!usedIds.has(t.id));
     if(avail.length<PER_ROUND[cat]){usedIds=new Set();avail=BANK[cat].slice()}
-    const chosen=shuffle(avail).slice(0,PER_ROUND[cat]);
-    chosen.forEach(t=>usedIds.add(t.id));
+    pick[cat]=shuffle(avail).slice(0,PER_ROUND[cat]);
+    pick[cat].forEach(t=>usedIds.add(t.id));
     used[cat]=[...usedIds];
-    round=round.concat(chosen);
   }
   saveUsed(used);
-  return shuffle(round).map(t=>{
-    const at=Math.floor(t.a/10)*10,ao=t.a%10,bt=Math.floor(t.b/10)*10,bo=t.b%10,add=t.type==='add';
-    return {...t,at,ao,bt,bo,add,rt:add?at+bt:at-bt,ro:add?ao+bo:ao-bo,res:add?t.a+t.b:t.a-t.b};
-  });
+  const adds=shuffle(pick.addNo.concat(pick.addC)),subs=shuffle(pick.subE.concat(pick.subH));
+  const flip=Math.random()<.5,round=[];   // na przemian: dodawanie, odejmowanie, ...
+  for(let i=0;i<adds.length;i++){round.push(flip?subs[i]:adds[i]);round.push(flip?adds[i]:subs[i])}
+  return round.map(derive);
 }
 
 /* ======================= Pochwały ======================= */
@@ -384,12 +390,17 @@ function startGame(){
 
 /* ---------- pojedyncze zadanie ---------- */
 const OP=t=>t.add?'+':'−';
-function digitsHTML(owner,v){
-  const T=Math.floor(v/10),O=v%10;
-  return `<span class="num"><span class="dig tens" data-kind="tens" data-owner="${owner}">${T}</span><span class="dig ones" data-kind="ones" data-owner="${owner}">${O}</span></span>`;
+function digitsHTML(owner,v,inert){
+  const T=Math.floor(v/10),O=v%10,c=inert?' inert':'';
+  return `<span class="num"><span class="dig tens${c}" data-kind="tens" data-owner="${owner}">${T}</span><span class="dig ones${c}" data-kind="ones" data-owner="${owner}">${O}</span></span>`;
 }
-function boxIn(kind,owner){return `<div class="box" data-kind="${kind}" data-owner="${owner}"><input inputmode="numeric" maxlength="3" autocomplete="off" aria-label="${kind==='tens'?'dziesiątki':'jedności'} ${owner}"></div>`}
-function boxRes(kind){return `<div class="box res" data-kind="${kind}" data-owner="r"><input inputmode="numeric" maxlength="3" autocomplete="off" aria-label="wynik"></div>`}
+/* pole do wpisania; link=true -> można do niego poprowadzić linię */
+function inBox(exp,cls,hint,link){
+  const d=link?` data-kind="${link[0]}" data-owner="${link[1]}"`:'';
+  return `<div class="box k-${cls}"${d}><input inputmode="numeric" maxlength="3" autocomplete="off" data-exp="${exp}" data-hint="${hint}"></div>`;
+}
+const stBox=(txt,cls)=>`<div class="box static k-${cls}">${txt}</div>`;
+const sym=s=>`<span class="sym">${s}</span>`;
 function startTask(){
   task=round[idx];phase=0;mistakes=0;lines=[];selected=null;drag=null;locked=false;
   $('#counter').textContent=`Zadanie ${idx+1} z ${TOTAL}`;
@@ -398,30 +409,31 @@ function startTask(){
   $('#praise').classList.remove('show');
   $('#nextBtn').hidden=true;$('#checkBtn').hidden=false;
   const t=task,op=OP(t);
-  $('#example').innerHTML=`${digitsHTML('a',t.a)}<span class="op">${op}</span>${digitsHTML('b',t.b)}<span class="eq">=</span><span class="q">?</span>`;
-  $('#rowT').innerHTML=`<span class="tag red">🔴 DZIESIĄTKI</span><div class="eqrow">${boxIn('tens','a')}<span class="sym">${op}</span>${boxIn('tens','b')}<span class="sym">=</span>${boxRes('tens')}</div>`;
-  $('#rowO').innerHTML=`<span class="tag green">🟢 JEDNOŚCI</span><div class="eqrow">${boxIn('ones','a')}<span class="sym">${op}</span>${boxIn('ones','b')}<span class="sym">=</span>${boxRes('ones')}</div>`;
-  $('#rowF').innerHTML=`<span class="tag blue">🔵 RAZEM</span><div class="eqrow"><div class="box static" id="fT"></div><span class="sym">+</span><div class="box static" id="fO"></div><span class="sym">=</span><div class="box" id="fR"><input inputmode="numeric" maxlength="3" autocomplete="off" aria-label="wynik końcowy"></div></div>`;
+  $('#example').innerHTML=`${digitsHTML('a',t.a,!t.add)}<span class="op">${op}</span>${digitsHTML('b',t.b)}<span class="eq">=</span><span class="q">?</span>`;
+  if(t.add){
+    $('#rowT').innerHTML=`<span class="tag">✏️ ROZPISZ NA <span style="color:var(--red)">DZIESIĄTKI</span> I <span style="color:var(--green)">JEDNOŚCI</span></span><div class="eqrow">${sym('=')}${inBox(t.at,'tens',`W liczbie ${t.a} dziesiątki to ${t.at}`,['tens','a'])}${sym('+')}${inBox(t.bt,'tens',`W liczbie ${t.b} dziesiątki to ${t.bt}`,['tens','b'])}${sym('+')}${inBox(t.ao,'ones',`W liczbie ${t.a} jedności to ${t.ao}`,['ones','a'])}${sym('+')}${inBox(t.bo,'ones',`W liczbie ${t.b} jedności to ${t.bo}`,['ones','b'])}</div>`;
+    $('#rowO').innerHTML=`<span class="tag">➕ DODAJ: <span style="color:var(--red)">czerwone</span> z czerwonymi, <span style="color:var(--green)">zielone</span> z zielonymi</span><div class="eqrow">${sym('=')}${inBox(t.rt,'tens',`Dodaj dziesiątki: ${t.at} + ${t.bt}`)}${sym('+')}${inBox(t.ro,'ones',`Dodaj jedności: ${t.ao} + ${t.bo}`)}${sym('=')}${inBox(t.res,'all',`Dodaj: ${t.rt} + ${t.ro}`)}</div>`;
+  }else{
+    $('#rowT').innerHTML=`<span class="tag">✏️ ROZPISZ <b>${t.b}</b> NA <span style="color:var(--red)">DZIESIĄTKI</span> I <span style="color:var(--green)">JEDNOŚCI</span></span><div class="eqrow">${sym('=')}${stBox(t.a,'all')}${sym('−')}${inBox(t.bt,'tens',`W liczbie ${t.b} dziesiątki to ${t.bt}`,['tens','b'])}${sym('−')}${inBox(t.bo,'ones',`W liczbie ${t.b} jedności to ${t.bo}`,['ones','b'])}</div>`;
+    $('#rowO').innerHTML=`<span class="tag">➖ ODEJMIJ PO KOLEI: najpierw dziesiątki, potem jedności</span><div class="eqrow">${sym('=')}${inBox(t.m,'all',`Odejmij dziesiątki: ${t.a} − ${t.bt}`)}${sym('−')}${stBox(t.bo,'ones')}${sym('=')}${inBox(t.res,'all',`Odejmij jedności: ${t.m} − ${t.bo}`)}</div>`;
+  }
   applyPhase();
   drawLines();
 }
-function rowEl(kind){return kind==='tens'?$('#rowT'):$('#rowO')}
 function applyPhase(){
-  $('#rowT').classList.toggle('dim',phase!==0);
   $('#rowO').classList.toggle('dim',phase!==1);
-  $('#rowF').classList.toggle('dim',phase!==2);
-  document.querySelectorAll('.dig').forEach(d=>{
-    d.classList.toggle('active',(phase===0&&d.dataset.kind==='tens'||phase===1&&d.dataset.kind==='ones')&&!d.classList.contains('linked'));
-  });
+  applyActive();
+  const t=task;
   const msgs=[
-    'Krok 1: Rozpisz <b class="r">DZIESIĄTKI</b> w czerwonym rzędzie. Potem <b>przeciągnij palcem</b> czerwoną linię od cyfry dziesiątek w przykładzie do jej pola (albo dotknij cyfrę, a potem pole).',
-    'Świetnie! Krok 2: Teraz <b class="g">JEDNOŚCI</b>. Wpisz je w zielonym rzędzie i połącz zielonymi liniami cyfry jedności z polami.',
-    `Krok 3: Dodaj razem to, co wyszło: ${task.rt} i ${task.ro}. Ile to jest razem?`
+    t.add?'Krok 1: Rozpisz obie liczby na <b class="r">dziesiątki</b> i <b class="g">jedności</b>. Potem połącz liniami cyfry z przykładu z polami: <b class="r">czerwone</b> – dziesiątki, <b class="g">zielone</b> – jedności. <b>Przeciągnij palcem</b> od cyfry do pola (albo dotknij cyfrę, a potem pole).'
+      :`Krok 1: Pierwszą liczbę (<b>${t.a}</b>) przepisujemy. Rozpisz drugą liczbę <b>${t.b}</b> na <b class="r">dziesiątki</b> i <b class="g">jedności</b> i połącz liniami cyfry z polami. <b>Przeciągnij palcem</b> od cyfry do pola.`,
+    t.add?`Świetnie! Krok 2: Dodaj <b class="r">dziesiątki</b> do dziesiątek i <b class="g">jedności</b> do jedności, a na końcu oba wyniki.`
+      :`Świetnie! Krok 2: Najpierw odejmij <b class="r">dziesiątki</b> (${t.a} − ${t.bt}), a potem <b class="g">jedności</b> (${t.bo}).`
   ];
   setCoach(msgs[phase]);
-  if(phase===2){$('#fT').textContent=task.rt;$('#fO').textContent=task.ro}
-  const rb=[$('#rowT'),$('#rowO'),$('#rowF')][phase];
-  const first=rb.querySelector('input');if(first)setTimeout(()=>first.focus({preventScroll:true}),50);
+  const rb=phase===0?$('#rowT'):$('#rowO');
+  const first=[...rb.querySelectorAll('input')].find(i=>!i.readOnly);
+  if(first)setTimeout(()=>{const a=document.activeElement;if(!(a&&a.matches&&a.matches('.box input')&&!a.readOnly))first.focus({preventScroll:true})},50);
 }
 function setCoach(html){$('#coachText').innerHTML=html}
 
@@ -431,7 +443,7 @@ function relPoint(el,where){
   return {x:r.left+r.width/2-s.left,y:(where==='bottom'?r.bottom:r.top)-s.top};
 }
 function curve(p,q,owner,kind){
-  const bow=(owner==='a'?-1:1)*(kind==='ones'?55:28);
+  const bow=0;
   const dy=(q.y-p.y);
   return `M${p.x} ${p.y} C${p.x+bow} ${p.y+dy*.35} ${q.x+bow} ${q.y-dy*.35} ${q.x} ${q.y}`;
 }
@@ -454,41 +466,40 @@ function flashBad(chip,box){
   overlay.insertAdjacentHTML('beforeend',`<path class="bad" d="M${p.x} ${p.y} L${q.x} ${q.y}" stroke="#999"/>`);
   setTimeout(drawLines,550);
 }
+function chipAllowed(d){return phase===0&&(task.add||d.dataset.owner==='b')}
+function applyActive(){document.querySelectorAll('.dig').forEach(d=>{d.classList.toggle('active',chipAllowed(d)&&!d.classList.contains('linked'))})}
 function connect(chip,box){
   const ck=chip.dataset.kind,co=chip.dataset.owner,bk=box.dataset.kind,bo=box.dataset.owner;
-  const need=phase===0?'tens':'ones';
-  if(ck!==need){setCoach(`Teraz łączymy tylko ${need==='tens'?'<b class="r">dziesiątki</b> (czerwone)':'<b class="g">jedności</b> (zielone)'}.`);return false}
-  if(bk!==ck){mistakes++;sndBad();flashBad(chip,box);setCoach(`Ta linia nie pasuje. ${ck==='tens'?'<b class="r">Dziesiątki</b> łączymy z czerwonym rzędem':'<b class="g">Jedności</b> łączymy z zielonym rzędem'}.`);return false}
+  if(!chipAllowed(chip))return false;
+  if(bk!==ck){mistakes++;sndBad();flashBad(chip,box);setCoach('Ta linia nie pasuje. <b class="r">Dziesiątki</b> łączymy z dziesiątkami, a <b class="g">jedności</b> z jednościami.');return false}
   if(bo!==co){mistakes++;sndBad();flashBad(chip,box);setCoach('Prawie! Ta cyfra należy do <b>innej liczby</b>. Spójrz jeszcze raz, skąd się bierze to pole.');return false}
   lines=lines.filter(l=>l.chip!==chip&&l.box!==box);
   lines.push({chip,box,kind:ck,owner:co});
   chip.classList.add('linked');chip.classList.remove('active','sel');
   box.classList.add('linked',ck==='tens'?'t':'o');
   selected=null;sndStep();
-  const left=2-lines.filter(l=>l.kind===ck).length;
-  setCoach(left>0?`Dobrze! Połącz jeszcze ${left} ${ck==='tens'?'<b class="r">czerwoną</b>':'<b class="g">zieloną</b>'} linię.`:`Wszystkie linie połączone! 👍 Sprawdź, czy wpisane liczby są dobre i kliknij <b>Sprawdź</b>.`);
+  const left=task.need-lines.length;
+  setCoach(left>0?`Dobrze! Zostało linii do połączenia: <b>${left}</b>.`:'Wszystkie linie połączone! 👍 Sprawdź, czy wpisane liczby są dobre i kliknij <b>Sprawdź</b>.');
   drawLines();return true;
 }
 
 /* zdarzenia wskaźnika */
 stage.addEventListener('pointerdown',e=>{
-  if(locked||phase>1)return;
+  if(locked||phase>0)return;
   const chip=e.target.closest('.dig');
   const box=e.target.closest('.box[data-kind]');
-  if(selected&&box&&box.dataset.kind&&!box.classList.contains('static')){connect(selected,box);selected&&selected.classList.remove('sel');selected=null;drawLines();return}
+  if(selected&&box&&!box.classList.contains('static')){connect(selected,box);selected&&selected.classList.remove('sel');selected=null;drawLines();return}
   if(!chip)return;
+  if(!chipAllowed(chip)){setCoach('W odejmowaniu rozpisujemy tylko <b>drugą liczbę</b>. Pierwsza zostaje cała.');return}
   if(chip.classList.contains('linked')){ // usuń linię i pozwól narysować nową
     const l=lines.find(x=>x.chip===chip);
     if(l){l.box.classList.remove('linked','t','o');lines=lines.filter(x=>x!==l);chip.classList.remove('linked');applyActive();}
   }
-  const need=phase===0?'tens':'ones';
-  if(chip.dataset.kind!==need){setCoach(`Teraz łączymy tylko ${need==='tens'?'<b class="r">dziesiątki</b> (czerwone)':'<b class="g">jedności</b> (zielone)'}.`);return}
   e.preventDefault();
   try{stage.setPointerCapture(e.pointerId)}catch(_){}
   drag={chip,start:{x:e.clientX,y:e.clientY},moved:false,cur:null};
   if(selected)selected.classList.remove('sel');
 });
-function applyActive(){document.querySelectorAll('.dig').forEach(d=>{d.classList.toggle('active',(phase===0&&d.dataset.kind==='tens'||phase===1&&d.dataset.kind==='ones')&&!d.classList.contains('linked'))})}
 stage.addEventListener('pointermove',e=>{
   if(!drag)return;
   const s=stage.getBoundingClientRect();
@@ -518,43 +529,31 @@ stage.addEventListener('pointerup',e=>endDrag(e,false));
 stage.addEventListener('pointercancel',e=>endDrag(e,true));
 
 /* ---------- sprawdzanie ---------- */
-function readRow(rb){return [...rb.querySelectorAll('input')].map(i=>i.value.trim())}
 function check(){
   if(locked)return;
   const t=task;
-  if(phase===0||phase===1){
-    const kind=phase===0?'tens':'ones',rb=rowEl(kind);
-    const exp=kind==='tens'?[t.at,t.bt,t.rt]:[t.ao,t.bo,t.ro];
-    const vals=readRow(rb),inputs=[...rb.querySelectorAll('input')];
-    let bad=[];
-    vals.forEach((v,i)=>{if(v===''||+v!==exp[i])bad.push(i)});
-    inputs.forEach((inp,i)=>inp.parentElement.classList.toggle('wrong',bad.includes(i)));
-    if(bad.length){
-      mistakes++;sndBad();
-      const empty=vals.some(v=>v==='');
-      if(empty)setCoach('Wypełnij wszystkie trzy pola w tym rzędzie. 😊');
-      else if(bad.length===1&&bad[0]===2)setCoach(`Dobrze rozpisane! Ale sprawdź wynik: ${exp[0]} ${OP(t)} ${exp[1]} to ile?`);
-      else if(kind==='tens')setCoach(`Policz jeszcze raz. W liczbie <b>${t.a}</b> dziesiątki to <b>${t.at}</b>, a w liczbie <b>${t.b}</b> to <b>${t.bt}</b>.`);
-      else setCoach(`Policz jeszcze raz. W liczbie <b>${t.a}</b> jedności to <b>${t.ao}</b>, a w liczbie <b>${t.b}</b> to <b>${t.bo}</b>.`);
-      return;
-    }
-    if(lines.filter(l=>l.kind===kind).length<2){
-      setCoach(`Liczby są dobre! 👏 Teraz połącz ${kind==='tens'?'<b class="r">czerwonymi</b>':'<b class="g">zielonymi</b>'} liniami cyfry w przykładzie u góry z polami w rzędzie.`);
+  const rb=phase===0?$('#rowT'):$('#rowO');
+  const inputs=[...rb.querySelectorAll('input')];
+  const bad=[];let empty=false;
+  inputs.forEach((inp,i)=>{const v=inp.value.trim();if(v==='')empty=true;if(v===''||+v!==+inp.dataset.exp)bad.push(i)});
+  inputs.forEach((inp,i)=>inp.parentElement.classList.toggle('wrong',bad.includes(i)));
+  if(bad.length){
+    sndBad();
+    if(empty){setCoach('Wypełnij wszystkie puste pola. 😊');return}
+    mistakes++;
+    setCoach('Prawie! '+inputs[bad[0]].dataset.hint+'.');
+    return;
+  }
+  if(phase===0){
+    if(lines.length<t.need){
+      setCoach(`Liczby są dobre! 👏 Teraz połącz liniami cyfry w przykładzie z ich polami. Zostało linii: <b>${t.need-lines.length}</b>.`);
       return;
     }
     inputs.forEach(i=>{i.readOnly=true;i.parentElement.classList.add('ok')});
-    sndStep();phase++;applyPhase();drawLines();
+    sndStep();phase=1;applyPhase();drawLines();
     return;
   }
-  // faza 3 – wynik końcowy
-  const inp=$('#fR input'),v=inp.value.trim();
-  if(v===''||+v!==t.res){
-    mistakes++;sndBad();$('#fR').classList.add('wrong');
-    setCoach(v===''?'Wpisz wynik. 😊':`Prawie! Dodaj jeszcze raz: <b>${t.rt} + ${t.ro}</b>. Zacznij od dziesiątek.`);
-    setTimeout(()=>$('#fR').classList.remove('wrong'),450);
-    return;
-  }
-  inp.readOnly=true;$('#fR').classList.add('ok');
+  inputs.forEach(i=>{i.readOnly=true;i.parentElement.classList.add('ok')});
   finishTask();
 }
 function finishTask(){
