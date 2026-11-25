@@ -22,7 +22,7 @@
     -webkit-tap-highlight-color:transparent;
   }
   button{font:inherit;cursor:pointer}
-  .app{max-width:1100px;margin:0 auto;padding:12px 16px 40px}
+  .app{max-width:1500px;margin:0 auto;padding:12px 16px 40px}
 
   /* ---------- nagłówek ---------- */
   header.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
@@ -36,17 +36,19 @@
   @keyframes pulse{50%{transform:scaleY(1.5)}}
 
   /* ---------- układ ---------- */
-  .layout{display:grid;gap:16px;grid-template-columns:1fr}
-  @media(min-width:900px){.layout{grid-template-columns:1fr 340px;align-items:start}.puzzle-card{position:sticky;top:12px}}
+  .layout{display:grid;gap:16px;grid-template-columns:minmax(0,1fr)}
+  .layout>*{min-width:0}
+  @media(min-width:1250px){.layout{grid-template-columns:minmax(0,1fr) 300px;align-items:start}.puzzle-card{position:sticky;top:12px}}
   .card{background:var(--card);border-radius:24px;box-shadow:0 6px 20px rgba(35,48,77,.12);padding:16px}
 
   /* ---------- zadanie ---------- */
   .coach{display:flex;gap:10px;align-items:flex-start;background:#fff8e1;border:3px solid #ffd54f;border-radius:18px;padding:10px 14px;font-size:clamp(1rem,2.6vw,1.2rem);line-height:1.35;min-height:70px}
   .coach .face{font-size:2rem;line-height:1}
   .coach b.r{color:var(--red)} .coach b.g{color:var(--green)}
-  .stage{position:relative;padding:18px 40px 8px}
-  @media(max-width:520px){.stage{padding:14px 18px 6px}}
-  .example{display:flex;justify-content:center;align-items:center;gap:clamp(6px,2vw,18px);font-size:clamp(2.6rem,9vw,4.4rem);font-weight:800;margin:6px 0 22px;user-select:none}
+  .scroller{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;padding:0 4px}
+  .stage{position:relative;padding:18px 24px 8px;width:max-content;min-width:100%}
+  @media(max-width:520px){.stage{padding:14px 10px 6px}.example,.tag{width:calc(100vw - 72px);max-width:none}}
+  .example{display:flex;justify-content:center;align-items:center;gap:clamp(3px,1.5vw,18px);font-size:clamp(1.9rem,7.2vw,4.4rem);font-weight:800;margin:6px 0 22px;user-select:none}
   .example .num{display:inline-flex;background:#eef4ff;border-radius:18px;padding:2px 8px}
   .example .op,.example .eq,.example .q{color:var(--muted)}
   .dig{display:inline-block;min-width:1.05em;text-align:center;border-radius:12px;border:4px solid transparent;padding:0 4px;touch-action:none;cursor:default}
@@ -57,13 +59,14 @@
   .dig.sel{outline:4px solid var(--blue);outline-offset:2px}
   @keyframes wob{50%{transform:translateY(-4px)}}
 
-  .rowblock{margin:14px 0 16px;transition:.3s;display:flex;flex-direction:column}
-  .rowblock.dim{opacity:.35;pointer-events:none;filter:grayscale(.6)}
-  .tag{display:block;text-align:center;font-weight:800;font-size:clamp(.8rem,2.6vw,.95rem);letter-spacing:.02em;margin:8px 0 0;order:2;color:var(--muted)}
+  .rowblock{margin:26px 0 12px;display:flex;flex-direction:column;align-items:center}
+  .seg{display:flex;align-items:center;gap:.28em;transition:.3s}
+  .seg.dim{opacity:.35;pointer-events:none;filter:grayscale(.6)}
+  .tag{display:block;text-align:center;font-weight:800;font-size:clamp(.8rem,2.6vw,.95rem);letter-spacing:.02em;margin:12px 0 0;order:2;color:var(--muted)}
   .tag.red{color:var(--red)} .tag.green{color:var(--green)} .tag.blue{color:var(--blue)}
-  .eqrow{display:flex;justify-content:center;align-items:center;gap:clamp(3px,1.4vw,12px);font-size:clamp(1.3rem,5vw,2.3rem);font-weight:800}
+  .eqrow{display:flex;flex-wrap:nowrap;justify-content:center;align-items:center;gap:.28em;font-size:calc(var(--fs,34) * 1px);font-weight:800;width:max-content;margin:0 auto;white-space:nowrap}
   .eqrow .sym{color:var(--muted)}
-  .box{border-radius:16px;border:4px solid #b9c6e0;background:#fff;width:clamp(52px,13vw,88px);height:clamp(50px,11vw,68px);display:flex;align-items:center;justify-content:center;transition:.2s}
+  .box{border-radius:.3em;border:.11em solid #b9c6e0;background:#fff;width:2.15em;height:1.8em;flex:none;display:flex;align-items:center;justify-content:center;transition:.2s}
   .box.k-tens{border-color:#f3a6a4} .box.k-ones{border-color:#9bd7a8} .box.k-all{border-color:#a9c4f7}
   .dig.inert{opacity:.85}
   .box input{min-width:0;width:100%;height:100%;border:0;background:transparent;text-align:center;font:inherit;color:var(--ink);outline:0;border-radius:12px;padding:0;-moz-appearance:textfield}
@@ -167,11 +170,12 @@
   <div class="layout">
     <section class="card" id="taskCard">
       <div class="coach"><span class="face">🦸</span><div id="coachText"></div></div>
+      <div class="scroller" id="scroller">
       <div class="stage" id="stage">
         <div class="example" id="example"></div>
         <div class="rowblock" id="rowT"></div>
-        <div class="rowblock" id="rowO"></div>
         <svg class="overlay" id="overlay"></svg>
+      </div>
       </div>
       <div class="actions">
         <button class="btn" id="checkBtn">Sprawdź ✔</button>
@@ -410,18 +414,24 @@ function startTask(){
   $('#nextBtn').hidden=true;$('#checkBtn').hidden=false;
   const t=task,op=OP(t);
   $('#example').innerHTML=`${digitsHTML('a',t.a,!t.add)}<span class="op">${op}</span>${digitsHTML('b',t.b)}<span class="eq">=</span><span class="q">?</span>`;
+  const seg=(cls,inner)=>`<div class="seg ${cls}">${inner}</div>`;
+  let s1,s2,tag;
   if(t.add){
-    $('#rowT').innerHTML=`<span class="tag">✏️ ROZPISZ NA <span style="color:var(--red)">DZIESIĄTKI</span> I <span style="color:var(--green)">JEDNOŚCI</span></span><div class="eqrow">${sym('=')}${inBox(t.at,'tens',`W liczbie ${t.a} dziesiątki to ${t.at}`,['tens','a'])}${sym('+')}${inBox(t.bt,'tens',`W liczbie ${t.b} dziesiątki to ${t.bt}`,['tens','b'])}${sym('+')}${inBox(t.ao,'ones',`W liczbie ${t.a} jedności to ${t.ao}`,['ones','a'])}${sym('+')}${inBox(t.bo,'ones',`W liczbie ${t.b} jedności to ${t.bo}`,['ones','b'])}</div>`;
-    $('#rowO').innerHTML=`<span class="tag">➕ DODAJ: <span style="color:var(--red)">czerwone</span> z czerwonymi, <span style="color:var(--green)">zielone</span> z zielonymi</span><div class="eqrow">${sym('=')}${inBox(t.rt,'tens',`Dodaj dziesiątki: ${t.at} + ${t.bt}`)}${sym('+')}${inBox(t.ro,'ones',`Dodaj jedności: ${t.ao} + ${t.bo}`)}${sym('=')}${inBox(t.res,'all',`Dodaj: ${t.rt} + ${t.ro}`)}</div>`;
+    s1=sym('=')+inBox(t.at,'tens',`W liczbie ${t.a} dziesiątki to ${t.at}`,['tens','a'])+sym('+')+inBox(t.bt,'tens',`W liczbie ${t.b} dziesiątki to ${t.bt}`,['tens','b'])+sym('+')+inBox(t.ao,'ones',`W liczbie ${t.a} jedności to ${t.ao}`,['ones','a'])+sym('+')+inBox(t.bo,'ones',`W liczbie ${t.b} jedności to ${t.bo}`,['ones','b']);
+    s2=sym('=')+inBox(t.rt,'tens',`Dodaj dziesiątki: ${t.at} + ${t.bt}`)+sym('+')+inBox(t.ro,'ones',`Dodaj jedności: ${t.ao} + ${t.bo}`)+sym('=')+inBox(t.res,'all',`Dodaj: ${t.rt} + ${t.ro}`);
+    tag='✏️ Rozpisz liczby na <span style="color:var(--red)">dziesiątki</span> i <span style="color:var(--green)">jedności</span>, potem dodaj: <span style="color:var(--red)">czerwone</span> z czerwonymi, <span style="color:var(--green)">zielone</span> z zielonymi';
   }else{
-    $('#rowT').innerHTML=`<span class="tag">✏️ ROZPISZ <b>${t.b}</b> NA <span style="color:var(--red)">DZIESIĄTKI</span> I <span style="color:var(--green)">JEDNOŚCI</span></span><div class="eqrow">${sym('=')}${stBox(t.a,'all')}${sym('−')}${inBox(t.bt,'tens',`W liczbie ${t.b} dziesiątki to ${t.bt}`,['tens','b'])}${sym('−')}${inBox(t.bo,'ones',`W liczbie ${t.b} jedności to ${t.bo}`,['ones','b'])}</div>`;
-    $('#rowO').innerHTML=`<span class="tag">➖ ODEJMIJ PO KOLEI: najpierw dziesiątki, potem jedności</span><div class="eqrow">${sym('=')}${inBox(t.m,'all',`Odejmij dziesiątki: ${t.a} − ${t.bt}`)}${sym('−')}${stBox(t.bo,'ones')}${sym('=')}${inBox(t.res,'all',`Odejmij jedności: ${t.m} − ${t.bo}`)}</div>`;
+    s1=sym('=')+stBox(t.a,'all')+sym('−')+inBox(t.bt,'tens',`W liczbie ${t.b} dziesiątki to ${t.bt}`,['tens','b'])+sym('−')+inBox(t.bo,'ones',`W liczbie ${t.b} jedności to ${t.bo}`,['ones','b']);
+    s2=sym('=')+inBox(t.m,'all',`Odejmij dziesiątki: ${t.a} − ${t.bt}`)+sym('−')+stBox(t.bo,'ones')+sym('=')+inBox(t.res,'all',`Odejmij jedności: ${t.m} − ${t.bo}`);
+    tag=`✏️ Zostaw <b>${t.a}</b>, rozpisz <b>${t.b}</b> na <span style="color:var(--red)">dziesiątki</span> i <span style="color:var(--green)">jedności</span>, potem odejmuj po kolei`;
   }
+  $('#rowT').innerHTML=`<div class="eqrow" id="eqrow">${seg('s1',s1)}${seg('s2',s2)}</div><span class="tag">${tag}</span>`;
   applyPhase();
+  fitRow();
   drawLines();
 }
 function applyPhase(){
-  $('#rowO').classList.toggle('dim',phase!==1);
+  $('.seg.s2').classList.toggle('dim',phase!==1);
   applyActive();
   const t=task;
   const msgs=[
@@ -431,10 +441,20 @@ function applyPhase(){
       :`Świetnie! Krok 2: Najpierw odejmij <b class="r">dziesiątki</b> (${t.a} − ${t.bt}), a potem <b class="g">jedności</b> (${t.bo}).`
   ];
   setCoach(msgs[phase]);
-  const rb=phase===0?$('#rowT'):$('#rowO');
+  const rb=phase===0?$('.seg.s1'):$('.seg.s2');
   const first=[...rb.querySelectorAll('input')].find(i=>!i.readOnly);
   if(first)setTimeout(()=>{const a=document.activeElement;if(!(a&&a.matches&&a.matches('.box input')&&!a.readOnly))first.focus({preventScroll:true})},50);
 }
+function fitRow(){
+  const row=$('#eqrow'),sc=$('#scroller');if(!row||!sc)return;
+  row.style.setProperty('--fs',40);
+  const need=row.getBoundingClientRect().width,avail=sc.clientWidth-(innerWidth<520?24:56);
+  let fs=Math.min(46,40*avail/need);
+  fs=Math.max(fs,innerWidth<520?20:26);   // poniżej tego włącza się przewijanie w poziomie
+  row.style.setProperty('--fs',fs.toFixed(1));
+  drawLines();
+}
+addEventListener('resize',fitRow);
 function setCoach(html){$('#coachText').innerHTML=html}
 
 /* ---------- linie ---------- */
@@ -532,7 +552,7 @@ stage.addEventListener('pointercancel',e=>endDrag(e,true));
 function check(){
   if(locked)return;
   const t=task;
-  const rb=phase===0?$('#rowT'):$('#rowO');
+  const rb=phase===0?$('.seg.s1'):$('.seg.s2');
   const inputs=[...rb.querySelectorAll('input')];
   const bad=[];let empty=false;
   inputs.forEach((inp,i)=>{const v=inp.value.trim();if(v==='')empty=true;if(v===''||+v!==+inp.dataset.exp)bad.push(i)});
@@ -609,7 +629,7 @@ document.addEventListener('keydown',e=>{
   if(!$('#nextBtn').hidden&&locked){nextTask();return}
   const el=e.target;
   if(el.matches&&el.matches('.box input')){
-    const inputs=[...document.querySelectorAll('.rowblock:not(.dim) .box input')].filter(i=>!i.readOnly);
+    const inputs=[...document.querySelectorAll('.seg:not(.dim) .box input')].filter(i=>!i.readOnly);
     const i=inputs.indexOf(el);
     if(i>=0&&i<inputs.length-1&&inputs[i+1].value===''){inputs[i+1].focus();return}
     check();
